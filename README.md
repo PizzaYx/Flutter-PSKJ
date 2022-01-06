@@ -1,6 +1,7 @@
 # Flutter-PSKJ(mapnavplugin)
 
-磐石科技 地图 室内导航
+[磐石科技官网](https://www.brtbeacon.com/#/index) 
+地图 室内导航 
 
 ## Getting Started
 
@@ -14,4 +15,4 @@ For help getting started with Flutter, view our
 samples, guidance on mobile development, and a full API reference.
 
 # Flutter-PSKJ
-# Flutter-PSKJ
+
