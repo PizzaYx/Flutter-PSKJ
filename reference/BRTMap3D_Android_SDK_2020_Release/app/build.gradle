@@ -1,0 +1,70 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 29
+    defaultConfig {
+        applicationId "com.brtbeacon.map3d.demo2020"
+        minSdkVersion 19
+        targetSdkVersion 29
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            ndk {
+                abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            }
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
+        debug {
+            ndk {
+                abiFilters 'armeabi-v7a', 'x86'
+            }
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    buildToolsVersion '29.0.3'
+    productFlavors {
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDir(['libs'])
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    implementation 'com.google.android.material:material:1.1.0'
+   // testImplementation 'junit:junit:4.12'
+   // androidTestImplementation 'androidx.test.ext:junit:1.1.1'
+    //androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+
+    //  MapboxGLAndroidSDK
+    implementation(name: 'MapboxGLAndroidSDK-release-9.1.0', ext: 'aar')
+    implementation group: 'com.mapbox.mapboxsdk', name: 'mapbox-android-telemetry', version: '5.0.0'
+    implementation group: 'com.mapbox.mapboxsdk', name: 'mapbox-sdk-geojson', version: '5.0.0'
+    implementation group: 'com.mapbox.mapboxsdk', name: 'mapbox-android-gestures', version: '0.6.0'
+    implementation group: 'com.mapbox.mapboxsdk', name: 'mapbox-sdk-turf', version: '5.0.0'
+
+    implementation(name: 'BRTMapData-release-2.2.3', ext: 'aar')
+    implementation(name: 'BRTMap3DLibrary-release-2.2.2', ext: 'aar')
+    implementation(name: 'BRTLocationLibrary-release-2.2.3', ext: 'aar')
+
+    implementation 'com.vividsolutions:jts:1.13'
+    implementation 'commons-codec:commons-codec:1.10'
+
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+
+
+}
