@@ -1,6 +1,6 @@
-# mapnavplugin
+# Flutter-PSKJ(mapnavplugin)
 
-导航地图
+磐石科技 地图 室内导航
 
 ## Getting Started
 
