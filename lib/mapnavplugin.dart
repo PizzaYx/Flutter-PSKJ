@@ -7,8 +7,8 @@ class Mapnavplugin {
   static const MethodChannel _channel =
       const MethodChannel('plugins.mapnavplugin');
 
+  //设置楼层
   static Future setFloorNum(int floor) async {
-    final String version = await _channel.invokeMethod('switchFloor',<String,dynamic>{'floor':floor});
-
+    await _channel.invokeMethod('switchFloor',<String,dynamic>{'floor':floor});
   }
 }
