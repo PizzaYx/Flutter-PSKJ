@@ -2,3 +2,6 @@
 /.dart_tool/
 .packages
 /.git/
+.packages
+.dart_tool/package_config.json
+pubspec.lock
