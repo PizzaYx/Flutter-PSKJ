@@ -79,6 +79,8 @@ public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHand
                 return;
             }
 
+            //设置是否可见 1不可见
+            mapView.setLogoVisible(1);
             /**
              * 地图加载成功后，初始化搜索引擎；
              * init Search Engine
@@ -97,8 +99,7 @@ public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHand
             mapView.setBearing(90); // bearing: 0～360
             //倾斜
             mapView.setTilt(0); // tilt: 0～60
-            //设置是否可见 1不可见
-            mapView.setLogoVisible(1);
+
         }
 
         @Override
