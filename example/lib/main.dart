@@ -99,6 +99,13 @@ class _pskjMapPageState extends State<pskjMapPage> {
     );
   }
 
+
+  List<String> searchData  = [
+    '1楼',
+    '2楼',
+    '3楼',
+  ];
+
   Widget buildFloatingSearchBar() {
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
