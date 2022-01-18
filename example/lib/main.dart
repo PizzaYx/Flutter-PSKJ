@@ -53,6 +53,20 @@ class _pskjMapPageState extends State<pskjMapPage> {
   //楼层背景
   Color floorBg = Colors.blue.withOpacity(0.8);
 
+  FloatingSearchBarController _barController;
+
+  @override
+  void initState() {
+    super.initState();
+    _barController = new FloatingSearchBarController();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _barController.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,20 +113,16 @@ class _pskjMapPageState extends State<pskjMapPage> {
     );
   }
 
-
-  List<String> searchData  = [
-    '1楼',
-    '2楼',
-    '3楼',
-  ];
+  List<String> searchData = [];
 
   Widget buildFloatingSearchBar() {
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
     return FloatingSearchBar(
       hint: '搜索',
+      controller: _barController,
       scrollPadding: const EdgeInsets.only(top: 16, bottom: 56),
-      transitionDuration: const Duration(milliseconds: 800),
+      transitionDuration: const Duration(milliseconds: 600),
       transitionCurve: Curves.easeInOut,
       physics: const BouncingScrollPhysics(),
       // 0.0 : -1.0,
@@ -120,37 +130,67 @@ class _pskjMapPageState extends State<pskjMapPage> {
       openAxisAlignment: 0.0,
       maxWidth: isPortrait ? 600 : 500,
       debounceDelay: const Duration(milliseconds: 500),
-      onQueryChanged: (query) {
+      onQueryChanged: (query) async {
         // Call your model, bloc, controller here.
+        print('输入---$query');
+        searchData = [];
+        if (query != '') {
+          List<String> listData = await Mapnavplugin.setSearchData(query);
+          if (listData.length != null) {
+            searchData = listData;
+          } else {
+            searchData.add('未查询到数据');
+          }
+        }
+        setState(() {});
       },
       // Specify a custom transition to be used for
       // animating between opened and closed stated.
       transition: CircularFloatingSearchBarTransition(),
       actions: [
-        FloatingSearchBarAction(
-          showIfOpened: false,
-          child: CircularButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {},
-          ),
-        ),
         FloatingSearchBarAction.searchToClear(
-          showIfClosed: false,
+          showIfClosed: true,
         ),
       ],
       builder: (context, transition) {
         return ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Material(
-            color: Colors.white,
-            elevation: 4.0,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text('1'),
-              Text('2'),
-              Text('3'),
-              Text('4'),
-            ]),
-          ),
+              color: Colors.white,
+              elevation: 4.0,
+              child: Container(
+                width: 500,
+                height: searchData.length > 15
+                    ? 15 * 40.0
+                    : searchData.length * 40.0,
+                child: ListView.separated(
+                  itemBuilder: (BuildContext context, int index) {
+                    return Container(
+                      height: 40,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () async {
+                          _barController.close();
+                          await Mapnavplugin.chooseIndex(index);
+                          print('选择--$index');
+                        },
+                        child: Center(
+                          child: Text(
+                            searchData[index],
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  itemCount: searchData.length,
+                  separatorBuilder: (BuildContext context, int index) {
+                    return Divider(
+                      height: 0.1,
+                    );
+                  },
+                ),
+              )),
         );
       },
     );

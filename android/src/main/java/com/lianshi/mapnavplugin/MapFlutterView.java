@@ -30,16 +30,18 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.linearref.LengthLocationMap;
 import com.vividsolutions.jts.linearref.LinearLocation;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.platform.PlatformView;
 
-public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHandler{
+public class MapFlutterView implements PlatformView, MethodChannel.MethodCallHandler {
 
     private static final int BRTMAP_PERMISSION_CODE = 9999;
     private BRTMapView mapView;
@@ -50,18 +52,19 @@ public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHand
     private BRTSearchAdapter searchAdapter = null;//查询
     private BRTMapRouteManager routeManager = null;//导航
     public static final String ARG_MAP_BUNDLE = "arg_map_bundle";
-    private  final String buildingid = "00280019";
-    private  final String appkey = "ab487b0bd7184f14abc5a6304d4236a5";
+    private final String buildingid = "00280019";
+    private final String appkey = "ab487b0bd7184f14abc5a6304d4236a5";
+    private List<BRTPoiEntity> entityList;//搜索内容
 
     MapFlutterView(Context context, Activity activity, BinaryMessenger m_messenger, Object args) {
         this.context = context;
         this.mactivity = activity;
-        this.methodChannel = new MethodChannel(m_messenger,"plugins.mapnavplugin");
+        this.methodChannel = new MethodChannel(m_messenger, "plugins.mapnavplugin");
         methodChannel.setMethodCallHandler(this);
         BRTMapEnvironment.initMapEnvironment(context);
         mNativeView = LayoutInflater.from(context).inflate(R.layout.activity_main, null, true);
         mapView = (BRTMapView) mNativeView.findViewById(R.id.mapNavView);
-       // floorView = mNativeView.findViewById(R.id.layout_floor);
+        // floorView = mNativeView.findViewById(R.id.layout_floor);
 
         if (!checkNeedPermission( )) {
             mapView.init(buildingid, appkey);
@@ -83,12 +86,12 @@ public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHand
              * 地图加载成功后，初始化搜索引擎；
              * init Search Engine
              */
-            searchAdapter = new BRTSearchAdapter(context, mapView.getBuilding().getBuildingID());
+            searchAdapter = new BRTSearchAdapter(context, mapView.getBuilding( ).getBuildingID( ));
 
-            routeManager = new BRTMapRouteManager(context, mapView.getBuilding(), appkey, mapView.getFloorList(), true);
+            routeManager = new BRTMapRouteManager(context, mapView.getBuilding( ), appkey, mapView.getFloorList( ), true);
             routeManager.addRouteManagerListener(routeManagerListener);
             //地图加载成功后，显示第一个楼层
-            mapView.setFloor(mapView.getFloorList().get(0));
+            mapView.setFloor(mapView.getFloorList( ).get(0));
             mapView.setFloorByNumber(0);
 
             //缩放等级
@@ -119,7 +122,7 @@ public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHand
 
     //  路径规划监听器
     private BRTMapRouteManager.BRTRouteManagerListener routeManagerListener =
-            new BRTMapRouteManager.BRTRouteManagerListener(){
+            new BRTMapRouteManager.BRTRouteManagerListener( ) {
 
                 @Override
                 public void didSolveRouteWithResult(BRTMapRouteManager brtMapRouteManager, BRTRouteResult brtRouteResult) {
@@ -129,17 +132,17 @@ public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHand
                             //路径规划成功执行完成
                             mapView.setRouteResult(brtRouteResult);
                             //导航
-                            startProcessWalk();
+                            startProcessWalk( );
                         }
                     });
                 }
 
                 @Override
                 public void didFailSolveRouteWithError(BRTMapRouteManager brtMapRouteManager, BRTMapRouteManager.BRTRouteException e) {
-                    mactivity.runOnUiThread(new Runnable() {
+                    mactivity.runOnUiThread(new Runnable( ) {
                         @Override
                         public void run() {
-                            showToast(e.getMessage());
+                            showToast(e.getMessage( ));
                         }
                     });
                 }
@@ -184,37 +187,73 @@ public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHand
 
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
-        switch (call.method){
-            case "switchFloor":{
+        switch (call.method) {
+            case "switchFloor": {
                 int floornum = call.argument("floor");
                 mapView.setFloorByNumber(floornum);
             }
             break;
-            case "simulateNavigation":{
-                String startPoi = call.argument("startPoi");
-                String endPoi = call.argument("endPoi");
-                requestSimulationPath(getPoiInfo(startPoi),getPoiInfo(endPoi));
+            case "searchData": {
+
+                String searchData = call.argument("searchData");
+                if (searchData.isEmpty( ))
+                    return;
+                String floorData = call.argument("floor");
+                entityList = searchAdapter.queryPoi(searchData);
+
+
+                List<String> backData = new ArrayList<>( );
+                for (int i = 0; i < entityList.size( ); i++) {
+                    String fn;
+                    if (floorData.equals("0"))
+                        fn = String.valueOf(entityList.get(i).getFloorNumber( ));
+                    else
+                        fn = String.valueOf(entityList.get(Integer.parseInt(floorData)).getFloorNumber( ));
+
+                    String name = entityList.get(i).getName( );
+
+                    String itemStr = String.valueOf(i) + "&" + fn + "&" + name;
+                    backData.add(itemStr);
+                }
+                result.success(backData);
             }
             break;
+            case "chooseIndex": {
+                int searchData = call.argument("index");
+
+                BRTPoint brtPoint = entityList.get(0).getPoint( );
+
+                BRTPoint brtPoint1 = entityList.get(1).getPoint( );
+
+                requestSimulationPath(brtPoint, brtPoint1);
+
+            }
+            break;
+
+//            case "simulateNavigation":{
+//                String startPoi = call.argument("startPoi");
+//                String endPoi = call.argument("endPoi");
+//                requestSimulationPath(getPoiInfo(startPoi),getPoiInfo(endPoi));
+//            }
+//            break;
         }
     }
 
     //根据poi查询point
-    public BRTPoint getPoiInfo(String poi){
+    public BRTPoint getPoiInfo(String poi) {
         BRTPoint brtPoint = null;
-        List<BRTPoiEntity> entityList = searchAdapter.querySql("select * from POI where POI_ID = '" + poi+"'");
-        if(entityList.size() > 0)
-            brtPoint = entityList.get(0).getPoint();
+        List<BRTPoiEntity> entityList = searchAdapter.querySql("select * from POI where POI_ID = '" + poi + "'");
+        if (entityList.size( ) > 0)
+            brtPoint = entityList.get(0).getPoint( );
         return brtPoint;
     }
     //路径规划
 
 
     //路径规划
-    public void requestSimulationPath(BRTPoint startPoint,BRTPoint endPoint){
-        if(startPoint==null || endPoint == null)
-        {
-            showToast("startPoint=  "+startPoint + "   endPoint=  " + endPoint);
+    public void requestSimulationPath(BRTPoint startPoint, BRTPoint endPoint) {
+        if (startPoint == null || endPoint == null) {
+            showToast("startPoint=  " + startPoint + "   endPoint=  " + endPoint);
             return;
         }
 
@@ -227,26 +266,27 @@ public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHand
 
     //提示
     private Toast mToast;
+
     public void showToast(String message) {
         if (mToast != null) {
-            mToast.cancel();
+            mToast.cancel( );
         }
         mToast = Toast.makeText(context, message, Toast.LENGTH_SHORT);
-        mToast.show();
+        mToast.show( );
     }
 
     //模拟导航
     private BRTRoutePart walkPart = null;
     private double walkPartLength = 0.0;
     private long lastUpdateMillis = 0;
-    private double walkSpeed = 10; //10 Meter Per Second
-    private Handler handler = new Handler();
+    private double walkSpeed = 5; //10 Meter Per Second
+    private Handler handler = new Handler( );
 
     private void startProcessWalk() {
-        lastUpdateMillis = Calendar.getInstance().getTimeInMillis();
-        walkPart = mapView.getRouteResult().getAllRouteParts().get(0);
+        lastUpdateMillis = Calendar.getInstance( ).getTimeInMillis( );
+        walkPart = mapView.getRouteResult( ).getAllRouteParts( ).get(0);
         walkPartLength = 0.0;
-        processNextWalk();
+        processNextWalk( );
     }
 
     private void stopProcessWalk() {
@@ -258,39 +298,39 @@ public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHand
         handler.postDelayed(walkTimeTask, 30);
     }
 
-    private Runnable walkTimeTask = new Runnable() {
+    private Runnable walkTimeTask = new Runnable( ) {
         @Override
         public void run() {
             if (walkPart == null)
                 return;
 
-            if (mactivity.isFinishing())
+            if (mactivity.isFinishing( ))
                 return;
 
-            long currentTimeMillis = Calendar.getInstance().getTimeInMillis();
+            long currentTimeMillis = Calendar.getInstance( ).getTimeInMillis( );
             long timePeriod = currentTimeMillis - lastUpdateMillis;
             lastUpdateMillis = currentTimeMillis;
             double walkLength = walkSpeed * timePeriod / 1000.0;
             walkPartLength += walkLength;
-            RoutePart jtsRoutePart = walkPart.getJtsRoutePart();
-            com.vividsolutions.jts.geom.LineString jtsRoute = jtsRoutePart.getRoute();
-            double partLength = jtsRoute.getLength();
+            RoutePart jtsRoutePart = walkPart.getJtsRoutePart( );
+            com.vividsolutions.jts.geom.LineString jtsRoute = jtsRoutePart.getRoute( );
+            double partLength = jtsRoute.getLength( );
 
-            while(walkPartLength > partLength) {
-                if (walkPart.isLastPart()) {
+            while (walkPartLength > partLength) {
+                if (walkPart.isLastPart( )) {
                     walkPartLength = partLength;
                     break;
                 } else {
                     walkPartLength -= partLength;
-                    walkPart = walkPart.getNextPart();
-                    jtsRoutePart = walkPart.getJtsRoutePart();
-                    jtsRoute = jtsRoutePart.getRoute();
-                    partLength = jtsRoute.getLength();
+                    walkPart = walkPart.getNextPart( );
+                    jtsRoutePart = walkPart.getJtsRoutePart( );
+                    jtsRoute = jtsRoutePart.getRoute( );
+                    partLength = jtsRoute.getLength( );
                 }
             }
 
-            if (walkPart.getFloorInfo().getFloorNumber() != mapView.getCurrentFloor().getFloorNumber()) {
-                mapView.setFloorByNumber(walkPart.getFloorInfo().getFloorNumber());
+            if (walkPart.getFloorInfo( ).getFloorNumber( ) != mapView.getCurrentFloor( ).getFloorNumber( )) {
+                mapView.setFloorByNumber(walkPart.getFloorInfo( ).getFloorNumber( ));
             }
 
 
@@ -298,15 +338,14 @@ public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHand
             LinearLocation linearLocation = lengthLocationMap.getLocation(walkPartLength);
             Coordinate coordinate = linearLocation.getCoordinate(jtsRoute);
             LatLng latLng = BRTConvert.toLatLng(coordinate.x, coordinate.y);
-            BRTPoint location = new BRTPoint(walkPart.getFloorInfo().getFloorNumber(), latLng);
+            BRTPoint location = new BRTPoint(walkPart.getFloorInfo( ).getFloorNumber( ), latLng);
             mapView.setLocation(location);
 
 
-
             if (walkPartLength < partLength) {
-                processNextWalk();
+                processNextWalk( );
             } else {
-                stopProcessWalk();
+                stopProcessWalk( );
                 showToast("导航结束");
             }
             showCurrentHint(location);
@@ -315,10 +354,10 @@ public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHand
 
     //显示数据
     private void showCurrentHint(BRTPoint lp) {
-        BRTRouteResult routeResult = mapView.getRouteResult();
+        BRTRouteResult routeResult = mapView.getRouteResult( );
         BRTRoutePart part = routeResult.getNearestRoutePart(lp);
         if (part != null) {
-            List<BRTDirectionalHint> hints = part.getRouteDirectionalHint();
+            List<BRTDirectionalHint> hints = part.getRouteDirectionalHint( );
             BRTDirectionalHint hint = part.getDirectionalHintForLocationFromHints(lp, hints);
             if (hint != null) {
 //                tvHint.setText(getString(R.string.hint_direction) + hint.getDirectionString() + hint.getRelativeDirection() + "\n"
@@ -328,7 +367,7 @@ public class MapFlutterView implements PlatformView,MethodChannel.MethodCallHand
 //                        + "/" + String.format("%.2f", routeResult.length));
 
                 mapView.lookAt(lp, hint, 500);
-                mapView.processDeviceRotation(90 - hint.getCurrentAngle());
+                mapView.processDeviceRotation(90 - hint.getCurrentAngle( ));
             }
         }
     }
